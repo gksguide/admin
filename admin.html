@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پنل ادمین</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family:tahoma; }
+
+        body { background:#f5f5f5; }
+
+        /* هدر */
+        .admin-header {
+            background:#0b4cc4;
+            color:white;
+            padding:15px 30px;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+        }
+        .admin-header h1 { font-size:20px; }
+        .logout-btn {
+            background:white;
+            color:#0b4cc4;
+            border:none;
+            padding:8px 15px;
+            border-radius:8px;
+            cursor:pointer;
+            font-family:tahoma;
+        }
+
+        /* لایوت */
+        .admin-layout {
+            display:flex;
+            min-height:calc(100vh - 60px);
+        }
+
+        /* سایدبار */
+        .admin-sidebar {
+            width:230px;
+            background:white;
+            box-shadow:2px 0 10px rgba(0,0,0,0.1);
+        }
+        .admin-sidebar ul { list-style:none; }
+        .admin-sidebar li a {
+            display:block;
+            padding:16px 20px;
+            text-decoration:none;
+            color:#333;
+            border-bottom:1px solid #eee;
+            transition:.3s;
+        }
+        .admin-sidebar li a:hover,
+        .admin-sidebar li a.active {
+            background:#0b4cc4;
+            color:white;
+        }
+
+        /* محتوای اصلی */
+        .admin-main {
+            flex:1;
+            padding:30px;
+        }
+
+        /* کارت های آمار */
+        .stats-grid {
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+            gap:20px;
+            margin-bottom:30px;
+        }
+        .stat-card {
+            background:white;
+            border-radius:12px;
+            padding:20px;
+            text-align:center;
+            box-shadow:0 0 10px rgba(0,0,0,0.08);
+        }
+        .stat-card .icon { font-size:35px; margin-bottom:10px; }
+        .stat-card h3 { font-size:28px; color:#0b4cc4; margin-bottom:5px; }
+        .stat-card p { color:gray; font-size:14px; }
+
+        /* بخش ها */
+        .section {
+            background:white;
+            border-radius:12px;
+            padding:25px;
+            box-shadow:0 0 10px rgba(0,0,0,0.08);
+            display:none;
+        }
+        .section.active { display:block; }
+        .section h2 {
+            margin-bottom:20px;
+            color:#0b4cc4;
+            border-bottom:2px solid #eee;
+            padding-bottom:10px;
+        }
+        /* دکمه اضافه کردن */
+        .add-btn {
+            background:#0b4cc4;
+            color:white;
+            border:none;
+            padding:10px 20px;
+            border-radius:8px;
+            cursor:pointer;
+            font-family:tahoma;
+            margin-bottom:20px;
+        }
+
+        /* جدول */
+        table {
+            width:100%;
+            border-collapse:collapse;
+        }
+        th, td {
+            padding:12px;
+            text-align:right;
+            border-bottom:1px solid #eee;
+            font-size:14px;
+        }
+        th { background:#f8f8f8; color:#555; }
+
+        .action-btn {
+            padding:5px 12px;
+            border:none;
+            border-radius:6px;
+            cursor:pointer;
+            font-family:tahoma;
+            font-size:13px;
+            margin-left:5px;
+        }
+        .edit-btn { background:#f0a500; color:white; }
+        .delete-btn { background:#e74c3c; color:white; }
+        .reply-btn { background:#27ae60; color:white; }
+
+        /* مودال */
+        .modal {
+            display:none;
+            position:fixed;
+            top:0; left:0;
+            width:100%; height:100%;
+            background:rgba(0,0,0,0.5);
+            z-index:1000;
+            justify-content:center;
+            align-items:center;
+        }
+        .modal.open { display:flex; }
+        .modal-box {
+            background:white;
+            border-radius:15px;
+            padding:30px;
+            width:500px;
+            max-width:90%;
+        }
+        .modal-box h3 { margin-bottom:20px; color:#0b4cc4; }
+        .modal-box input,
+        .modal-box textarea {
+            width:100%;
+            padding:10px;
+            margin-bottom:15px;
+            border:1px solid #ddd;
+            border-radius:8px;
+            font-family:tahoma;
+        }
+        .modal-box textarea { height:100px; resize:vertical; }
+        .modal-buttons { display:flex; gap:10px; justify-content:flex-end; }
+        .save-btn {
+            background:#0b4cc4;
+            color:white;
+            border:none;
+            padding:10px 20px;
+            border-radius:8px;
+            cursor:pointer;
+            font-family:tahoma;
+        }
+        .cancel-btn {
+            background:#eee;
+            color:#333;
+            border:none;
+            padding:10px 20px;
+            border-radius:8px;
+            cursor:pointer;
+            font-family:tahoma;
+        }
+
+        /* داشبورد اصلی */
+        #dashboard { display:block; }
+    </style>
+</head>
+<body>
+
+<!-- هدر -->
+<div class="admin-header">
+    <h1>🛠️ پنل مدیریت GKS</h1>
+    <button class="logout-btn" onclick="adminLogout()">خروج از حساب</button>
+</div>
+
+<div class="admin-layout">
+
+    <!-- سایدبار -->
+    <div class="admin-sidebar">
+        <ul>
+            <li><a href="#" class="active" onclick="showSection('dashboard', this)">📊 داشبورد</a></li>
+            <li><a href="#" onclick="showSection('webinars', this)">🎥 وبینارها</a></li>
+            <li><a href="#" onclick="showSection('results', this)">📋 نتایج مشاوره</a></li>
+            <li><a href="#" onclick="showSection('files', this)">📁 فایل‌ها</a></li>
+            <li><a href="#" onclick="showSection('blogs', this)">📰 وبلاگ‌ها</a></li>
+            <li><a href="#" onclick="showSection('comments', this)">💬 نظرات</a></li>
+            <li><a href="#" onclick="showSection('team', this)">👥 تیم</a></li>
+        </ul>
+    </div>
+
+    <!-- محتوا -->
+    <div class="admin-main">
+
+        <!-- داشبورد -->
+        <div class="section active" id="dashboard">
+            <h2>📊 داشبورد</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="icon">🎥</div>
+                    <h3 id="countWebinars">...</h3>
+                    <p>وبینار</p>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">📋</div>
+                    <h3 id="countResults">...</h3>
+                    <p>نتیجه مشاوره</p>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">📁</div>
+                    <h3 id="countFiles">...</h3>
+                    <p>فایل</p>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">📰</div>
+                    <h3 id="countBlogs">...</h3>
+                    <p>وبلاگ</p>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">💬</div>
+                    <h3 id="countComments">...</h3>
+                    <p>نظر</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- وبینارها -->
+        <div class="section" id="webinars">
+            <h2>🎥 مدیریت وبینارها</h2>
+            <button class="add-btn" onclick="openModal('webinar')">+ افزودن وبینار</button>
+            <table>
+                <thead>
+                    <tr>
+                        <th>عنوان</th>
+                        <th>تاریخ</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody id="webinarsList"></tbody>
+            </table>
+        </div>
+
+        <!-- نتایج -->
+        <div class="section" id="results">
+            <h2>📋 مدیریت نتایج مشاوره</h2>
+            <button class="add-btn" onclick="openModal('result')">+ افزودن نتیجه</button>
+            <table>
+                <thead>
+                    <tr>
+                        <th>عنوان</th>
+                        <th>سال</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsList"></tbody>
+            </table>
+        </div>
+
+        <!-- فایل ها -->
+        <div class="section" id="files">
+            <h2>📁 مدیریت فایل‌ها</h2>
+            <button class="add-btn" onclick="openModal('file')">+ افزودن فایل</button>
+            <table>
+                <thead>
+                    <tr>
+                        <th>عنوان</th>
+                        <th>توضیحات</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody id="filesList"></tbody>
+            </table>
+        </div>
+
+        <!-- وبلاگ -->
+        <div class="section" id="blogs">
+            <h2>📰 مدیریت وبلاگ‌ها</h2>
+            <button class="add-btn" onclick="openModal('blog')">+ افزودن پست</button>
+            <table>
+                <thead>
+                    <tr>
+                        <th>عنوان</th>
+                        <th>تاریخ</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody id="blogsList"></tbody>
+            </table>
+        </div>
+
+        <!-- نظرات -->
+        <div class="section" id="comments">
+            <h2>💬 مدیریت نظرات</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>کاربر</th>
+                        <th>نظر</th>
+                        <th>صفحه</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody id="commentsList"></tbody>
+            </table>
+        </div>
+
+        <!-- تیم -->
+        <div class="section" id="team">
+            <h2>👥 مدیریت تیم</h2>
+            <button class="add-btn" onclick="openModal('team')">+ افزودن عضو</button>
+            <table>
+                <thead>
+                    <tr>
+                        <th>نام</th>
+                        <th>نقش</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody id="teamList"></tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+<!-- مودال -->
+<div class="modal" id="modal">
+    <div class="modal-box">
+        <h3 id="modalTitle">افزودن</h3>
+        <div id="modalFields"></div>
+        <div class="modal-buttons">
+            <button class="cancel-btn" onclick="closeModal()">انصراف</button>
+            <button class="save-btn" onclick="saveItem()">ذخیره</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyC1X6kF1ZKx9lA59RhRXCo0R93yLqcPnPE",
+    authDomain: "gks-migration.firebaseapp.com",
+    projectId: "gks-migration",
+    storageBucket: "gks-migration.firebasestorage.app",
+    messagingSenderId: "1062568689916",
+    appId: "1:1062568689916:web:d081cc2d34946b4d225779"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const ADMIN_EMAIL = "gksguide101@gmail.com"; // ایمیل ادمین خودت
+
+// چک کردن لاگین
+onAuthStateChanged(auth, user => {
+    if(!user || user.email !== ADMIN_EMAIL) {
+        window.location.href = "index.html";
+    } else {
+        loadAllData();
+    }
+});
+
+// لود همه داده ها
+async function loadAllData() {
+    loadCollection("webinars", "webinarsList", ["title","date"]);
+    loadCollection("results", "resultsList", ["title","year"]);
+    loadCollection("files", "filesList", ["title","description"]);
+    loadCollection("blogs", "blogsList", ["title","date"]);
+    loadCollection("comments", "commentsList", ["user","text","page"]);
+    loadCollection("team", "teamList", ["name","role"]);
+    loadCounts();
+}
+
+// لود یک کالکشن
+async function loadCollection(colName, tableId, fields) {
+    const tbody = document.getElementById(tableId);
+    tbody.innerHTML = "";
+    const snap = await getDocs(collection(db, colName));
+    snap.forEach(d => {
+        const data = d.data();
+        let cells = fields.map(f => <td>${data[f] || "-"}</td>).join("");
+        let actions = "";
+        if(colName === "comments") {
+            actions = 
+                <td>
+                    <button class="action-btn reply-btn" onclick="replyComment('${d.id}')">پاسخ</button>
+                    <button class="action-btn delete-btn" onclick="deleteItem('${colName}','${d.id}','${tableId}',${JSON.stringify(fields)})">حذف</button>
+                </td>;
+        } else {
+            actions = 
+                <td>
+                    <button class="action-btn delete-btn" onclick="deleteItem('${colName}','${d.id}','${tableId}',${JSON.stringify(fields)})">حذف</button>
+                </td>;
+        }
+        tbody.innerHTML += <tr id="row-${d.id}">${cells}${actions}</tr>;
+    });
+}
+
+// شمارش آمار
+async function loadCounts() {
+    const cols = ["webinars","results","files","blogs","comments"];
+    const ids = ["countWebinars","countResults","countFiles","countBlogs","countComments"];
+    for(let i=0; i<cols.length; i++) {
+        const snap = await getDocs(collection(db, cols[i]));
+        document.getElementById(ids[i]).textContent = snap.size;
+    }
+}
+// حذف آیتم
+window.deleteItem = async function(colName, id, tableId, fields) {
+    if(!confirm("آیا مطمئن هستید؟")) return;
+    await deleteDoc(doc(db, colName, id));
+    loadCollection(colName, tableId, fields);
+    loadCounts();
+}
+
+// پاسخ به نظر
+window.replyComment = function(id) {
+    alert("این بخش در مرحله بعد اضافه می‌شود");
+}
+
+// مودال
+let currentType = "";
+window.openModal = function(type) {
+    currentType = type;
+    const fields = getFields(type);
+    document.getElementById("modalTitle").textContent = getTitle(type);
+    document.getElementById("modalFields").innerHTML = fields;
+    document.getElementById("modal").classList.add("open");
+}
+window.closeModal = function() {
+    document.getElementById("modal").classList.remove("open");
+}
+
+function getTitle(type) {
+    const titles = {
+        webinar: "افزودن وبینار",
+        result: "افزودن نتیجه",
+        file: "افزودن فایل",
+        blog: "افزودن پست وبلاگ",
+        team: "افزودن عضو تیم"
+    };
+    return titles[type];
+}
+
+function getFields(type) {
+    const forms = {
+        webinar:` 
+            <input id="f1" placeholder="عنوان وبینار">
+            <input id="f2" placeholder="تاریخ (مثال: 1405/03/10)">
+            <input id="f3" placeholder="لینک تصویر (Google Drive)">
+            <input id="f4" placeholder="لینک ویدیو (Google Drive)">`,
+        result: ` 
+            <input id="f1" placeholder="عنوان نتیجه">
+            <input id="f2" placeholder="سال">
+            <input id="f3" placeholder="لینک تصویر (Google Drive)">
+            <textarea id="f4" placeholder="توضیحات"></textarea>`,
+        file:` 
+            <input id="f1" placeholder="عنوان فایل">
+            <input id="f2" placeholder="توضیحات">
+            <input id="f3" placeholder="لینک فایل (Google Drive)">`,
+        blog:` 
+            <input id="f1" placeholder="عنوان پست">
+            <input id="f2" placeholder="تاریخ">
+            <input id="f3" placeholder="لینک تصویر (Google Drive)">
+            <textarea id="f4" placeholder="متن پست"></textarea>`,
+        team:` 
+            <input id="f1" placeholder="نام عضو">
+            <input id="f2" placeholder="نقش (مثال: کارشناس مدارک)">
+            <textarea id="f3" placeholder="توضیحات"></textarea>`
+    };
+    return forms[type];
+}
+
+// ذخیره آیتم
+window.saveItem = async function() {
+    const f1 = document.getElementById("f1")?.value;
+    const f2 = document.getElementById("f2")?.value;
+    const f3 = document.getElementById("f3")?.value;
+    const f4 = document.getElementById("f4")?.value;
+
+    const dataMap = {
+        webinar: { title:f1, date:f2, image:f3, video:f4 },
+        result:  { title:f1, year:f2, image:f3, description:f4 },
+        file:    { title:f1, description:f2, link:f3 },
+        blog:    { title:f1, date:f2, image:f3, content:f4 },
+        team:    { name:f1, role:f2, description:f3 }
+    };
+
+    const colMap = {
+        webinar:"webinars", result:"results",
+        file:"files", blog:"blogs", team:"team"
+    };
+
+    const tableMap = {
+        webinar:["webinarsList",["title","date"]],
+        result:["resultsList",["title","year"]],
+        file:["filesList",["title","description"]],
+        blog:["blogsList",["title","date"]],
+        team:["teamList",["name","role"]]
+    };
+
+    await addDoc(collection(db, colMap[currentType]), dataMap[currentType]);
+    closeModal();
+    const [tableId, fields] = tableMap[currentType];
+    loadCollection(colMap[currentType], tableId, fields);
+    loadCounts();
+}
+
+// خروج
+window.adminLogout = async function() {
+    await signOut(auth);
+    window.location.href = "index.html";
+}
+
+// نمایش بخش ها
+window.showSection = function(id, el) {
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.querySelectorAll(".admin-sidebar a").forEach(a => a.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+    el.classList.add("active");
+}
+
+</script>
+
+</body>
+</html>
